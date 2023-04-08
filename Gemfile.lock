@@ -34,6 +34,7 @@ GEM
       ast (~> 2.4.1)
     pkg-config (1.5.1)
     rainbow (3.1.1)
+    rake (13.0.6)
     red-colors (0.3.0)
       matrix
     regexp_parser (2.7.0)
@@ -59,6 +60,7 @@ PLATFORMS
 
 DEPENDENCIES
   gtk2 (~> 3.4.3)
+  rake (>= 13, < 999)
   rubocop (= 1.14.0)
   ruby-dbus (~> 0.21.0)
 
