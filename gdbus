@@ -186,16 +186,6 @@ class DBusUI
     column.clickable = true
   end
 
-  def process_input(bus)
-    # THIS is the bad ass loop
-    # we should return to the glib main loop from time to time. Anyone with a
-    # proper way to handle it ?
-    bus.update_buffer
-    bus.messages.each do |msg|
-      bus.process(msg)
-    end
-  end
-
   def start_buses
     # call glibize to get dbus messages from the glib mainloop
     DBus::SessionBus.instance.glibize
