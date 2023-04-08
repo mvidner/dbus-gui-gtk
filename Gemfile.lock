@@ -62,6 +62,9 @@ GEM
       rexml
     ruby-progressbar (1.13.0)
     unicode-display_width (2.4.2)
+    webrick (1.7.0)
+    yard (0.9.28)
+      webrick (~> 1.7.0)
 
 PLATFORMS
   x86_64-linux
@@ -72,6 +75,7 @@ DEPENDENCIES
   rake (>= 13, < 999)
   rubocop (= 1.14.0)
   ruby-dbus (~> 0.21.0)
+  yard (>= 0.9, < 999)
 
 BUNDLED WITH
    2.3.26

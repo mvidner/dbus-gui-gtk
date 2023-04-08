@@ -10,4 +10,5 @@ gem "ruby-dbus", "~> 0.21.0"
 group :development do
   gem "rake", ">= 13", "< 999"
   gem "rubocop", "= 1.14.0"
+  gem "yard", ">= 0.9", "< 999"
 end
