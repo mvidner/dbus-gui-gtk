@@ -202,6 +202,11 @@ class DBusUI
     end
   end
 
+  # @param model
+  #   https://docs.gtk.org/gtk3/iface.TreeModel.html
+  #   https://developer-old.gnome.org/gtk2/stable/GtkTreeModel.html
+  # @param iter [Gtk::TreeIter]
+  # @param node [DBus::Node]
   def walk_node(model, iter, node)
     node.each_pair do |key, val|
       subiter = model.append(iter)
@@ -218,14 +223,18 @@ class DBusUI
     end
   end
 
+  # @param model
+  #   https://docs.gtk.org/gtk3/iface.TreeModel.html
+  #   https://developer-old.gnome.org/gtk2/stable/GtkTreeModel.html
+  # @param bus [DBus::Bus]
   def introspect_services(model, bus)
-    el = @introspect_array.shift
-    if el !~ /^:/
+    sname = @introspect_service_names.shift
+    if sname !~ /^:/
       iter = model.append(nil)
-      iter[0] = el
-      puts "introspecting: #{el}"
+      iter[0] = sname
+      puts "introspecting: #{sname}"
       begin
-        service = bus.service(el).introspect
+        service = bus.service(sname).introspect
         walk_node(model, iter, service.root)
       rescue Exception => e
         puts "DBus Error:"
@@ -233,13 +242,16 @@ class DBusUI
       end
     end
 
-    !@introspect_array.empty?
+    !@introspect_service_names.empty?
   end
 
-  def fill_treeview(bus, treeview, array)
+  # @param bus [DBus::Bus]
+  # @param treeview [Gtk::TreeView]
+  # @param service_names [Array<String>]
+  def fill_treeview(bus, treeview, service_names)
     model = Gtk::TreeStore.new(String, DBus::ProxyObjectInterface)
     treeview.model = model
-    @introspect_array = array.sort
+    @introspect_service_names = service_names.sort
     Gtk.idle_add { introspect_services(model, bus) }
   end
 
