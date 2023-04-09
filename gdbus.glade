@@ -6,8 +6,8 @@
     <property name="visible">True</property>
     <property name="can_focus">False</property>
     <property name="title" translatable="yes">GD-Bus</property>
-    <property name="default_width">500</property>
-    <property name="default_height">400</property>
+    <property name="default_width">1024</property>
+    <property name="default_height">768</property>
     <signal name="delete-event" handler="on_window_delete_event" swapped="no"/>
     <child>
       <object class="GtkHPaned" id="hpaned1">
