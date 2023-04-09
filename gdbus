@@ -66,7 +66,8 @@ class MethodCallWindow
     end
     bus.send_sync_or_async(m) do |retm|
       if retm.is_a?(DBus::Error)
-        puts "Error: #{retm.inspect}"
+        e = retm
+        puts "  #{e.dbus_message.error_name}: #{e.inspect}"
       else
         puts "Method #{m.member} returns: #{retm.params.inspect}"
       end
@@ -236,9 +237,8 @@ class DBusUI
       begin
         service = bus.service(sname).introspect
         walk_node(model, iter, service.root)
-      rescue Exception => e
-        puts "DBus Error:"
-        puts e.backtrace.join("\n")
+      rescue DBus::Error => e
+        puts "  #{e.dbus_message.error_name}: #{e.inspect}"
       end
     end
 
