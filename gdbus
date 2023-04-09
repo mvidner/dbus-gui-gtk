@@ -8,7 +8,7 @@
 # -- Arnaud
 
 require "dbus"
-require "gtk2"
+require "gtk3"
 
 ENABLE_SYSTEM = true
 
@@ -20,25 +20,30 @@ class MethodCallWindow
     @intf = intf
     @meth = meth
     @entries = []
-    @dialog = Gtk::Dialog.new(meth.name, pwindow,
-                              Gtk::Dialog::MODAL | Gtk::Dialog::NO_SEPARATOR,
-                              [Gtk::Stock::OK, Gtk::Dialog::RESPONSE_OK],
-                              [Gtk::Stock::CANCEL, Gtk::Dialog::RESPONSE_CANCEL])
+    @dialog = Gtk::Dialog.new(
+      title: meth.name, parent: pwindow, flags: :modal,
+      buttons: [
+        [Gtk::Stock::OK, :ok],
+        [Gtk::Stock::CANCEL, :cancel]
+      ]
+    )
 
     @meth.params.each do |param|
-      shbox = Gtk::HBox.new(true, 0)
+      shbox = Gtk::Box.new(:horizontal, 0)
+      shbox.set_homogeneous(true)
       label = Gtk::Label.new("#{param[0]} (#{param[1]})")
       input = Gtk::Entry.new
       @entries << input
-      shbox.pack_start(label, true, true, 0)
-      shbox.pack_start(input, true, true, 0)
-      @dialog.vbox.pack_start(shbox, true, true, 0)
-      @dialog.vbox.show_all
+      shbox.pack_start(label, expand: true, fill: true, padding: 0)
+      shbox.pack_start(input, expand: true, fill: true, padding: 0)
+      @dialog.child.pack_start(shbox, expand: true, fill: true, padding: 0)
+      @dialog.child.show_all
     end
   end
 
   def run
-    on_ok if @dialog.run == Gtk::Dialog::RESPONSE_OK
+    drun = @dialog.run
+    on_ok if drun == Gtk::ResponseType::OK
     @dialog.destroy
   end
 
@@ -243,7 +248,6 @@ class DBusUI
 
   # @param model
   #   https://docs.gtk.org/gtk3/iface.TreeModel.html
-  #   https://developer-old.gnome.org/gtk2/stable/GtkTreeModel.html
   # @param iter [Gtk::TreeIter]
   # @param node [DBus::Node]
   def walk_node(model, iter, node)
@@ -292,7 +296,7 @@ class DBusUI
     model = Gtk::TreeStore.new(String, DBus::ProxyObjectInterface)
     treeview.model = model
     service_names = service_names.sort
-    Gtk.idle_add { introspect_services(model, bus, service_names) }
+    GLib::Idle.add { introspect_services(model, bus, service_names) }
   end
 
   def main

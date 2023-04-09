@@ -3,7 +3,7 @@
 # -*-ruby -*-
 
 source "https://rubygems.org"
-gem "gtk2", "~> 3.4.3"
+gem "gtk3", "~> 4.1.2"
 gem "nokogiri", "~> 1.14"
 gem "ruby-dbus", "~> 0.21.0"
 
