@@ -39,6 +39,26 @@ class MethodCallWindow
     @dialog.destroy
   end
 
+  # @param type [DBus::SingleCompleteType]
+  # @param input [String]
+  # @return [Object]
+  def parse_input(type, input)
+    data = nil
+    case type
+    when "u", "i"
+      data = input.to_i
+    when "s"
+      data = input
+    when /^a/
+      begin
+        data = eval(input)
+      rescue
+        puts "Incorrect data: #{input.inspect}"
+      end
+    end
+    data
+  end
+
   def on_ok
     bus = @intf.object.bus
     m = DBus::Message.new(DBus::Message::METHOD_CALL)
@@ -49,19 +69,7 @@ class MethodCallWindow
     m.sender = bus.unique_name
     @meth.params.each_with_index do |param, idx|
       entry = @entries[idx]
-      data = nil
-      case param[1]
-      when "u", "i"
-        data = entry.text.to_i
-      when "s"
-        data = entry.text
-      when /^a/
-        begin
-          data = eval(entry.text)
-        rescue
-          puts "Incorrect data: #{data}"
-        end
-      end
+      data = parse_input(param[1], entry.text)
       m.add_param(param[1], data)
     end
     bus.send_sync_or_async(m) do |retm|
@@ -145,24 +153,42 @@ class DBusUI
       subiter[2] = m
       subiter[3] = intf
     end
+    intf.properties.keys.sort.each do |mi|
+      m = intf.properties[mi]
+      subiter = model.append
+      subiter[0] = "#{m.name}: #{m.type} (#{m.access})"
+      subiter[1] = "P"
+      subiter[2] = m
+      subiter[3] = intf
+    end
   end
 
   def on_method_activated(view, path, _column)
-    name = view.model.get_iter(path)[0]
+    iter = view.model.get_iter(path)
+    name = iter[0]
     puts "Clicked on: #{name.inspect}"
-    type = view.model.get_iter(path)[1]
+    type = iter[1]
     case type
     when "M"
-      method = view.model.get_iter(path)[2]
-      intf = view.model.get_iter(path)[3]
+      method = iter[2]
+      intf = iter[3]
       MethodCallWindow.new(@window, intf, method).run
     when "S"
-      signal = view.model.get_iter(path)[2]
-      intf = view.model.get_iter(path)[3]
+      signal = iter[2]
+      intf = iter[3]
       mr = DBus::MatchRule.new.from_signal(intf, signal)
       puts "*** Registering matchrule: #{mr} ***"
       intf.object.bus.add_match(mr) do |sig|
         puts "Got #{sig.member}(#{sig.params.join(",")})"
+      end
+    when "P"
+      property = iter[2]
+      intf = iter[3]
+      begin
+        value = intf[property.name.to_s]
+        puts "  #{value.inspect}"
+      rescue DBus::Error => e
+        puts "  #{e.dbus_message.error_name}: #{e.inspect}"
       end
     end
   end
