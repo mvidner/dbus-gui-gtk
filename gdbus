@@ -10,7 +10,7 @@
 require "dbus"
 require "gtk2"
 
-ENABLE_SYSTEM = false
+ENABLE_SYSTEM = true
 
 class MethodCallWindow
   def initialize(pwindow, intf, meth)
@@ -228,12 +228,13 @@ class DBusUI
   #   https://docs.gtk.org/gtk3/iface.TreeModel.html
   #   https://developer-old.gnome.org/gtk2/stable/GtkTreeModel.html
   # @param bus [DBus::Bus]
-  def introspect_services(model, bus)
-    sname = @introspect_service_names.shift
+  # @param service_names_remaining [Array<String>]
+  def introspect_services(model, bus, service_names_remaining)
+    sname = service_names_remaining.shift
     if sname !~ /^:/
       iter = model.append(nil)
       iter[0] = sname
-      puts "introspecting: #{sname}"
+      puts "introspecting: #{bus.class} #{sname.inspect}"
       begin
         service = bus.service(sname).introspect
         walk_node(model, iter, service.root)
@@ -242,7 +243,8 @@ class DBusUI
       end
     end
 
-    !@introspect_service_names.empty?
+    # once we return false, Gtk Idle will stop calling us
+    !service_names_remaining.empty?
   end
 
   # @param bus [DBus::Bus]
@@ -251,8 +253,8 @@ class DBusUI
   def fill_treeview(bus, treeview, service_names)
     model = Gtk::TreeStore.new(String, DBus::ProxyObjectInterface)
     treeview.model = model
-    @introspect_service_names = service_names.sort
-    Gtk.idle_add { introspect_services(model, bus) }
+    service_names = service_names.sort
+    Gtk.idle_add { introspect_services(model, bus, service_names) }
   end
 
   def main
