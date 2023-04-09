@@ -13,6 +13,9 @@ require "gtk2"
 ENABLE_SYSTEM = true
 
 class MethodCallWindow
+  # @param pwindow [Gtk::Window]
+  # @param intf [DBus::ProxyObjectInterface]
+  # @param meth [DBus::Method]
   def initialize(pwindow, intf, meth)
     @intf = intf
     @meth = meth
@@ -127,6 +130,7 @@ class DBusUI
     s
   end
 
+  # @param selection [Gtk::TreeSelection]
   def on_treeview_selection_changed(selection)
     selected = selection.selected
     model = Gtk::ListStore.new(String, String, DBus::Method,
@@ -163,6 +167,9 @@ class DBusUI
     end
   end
 
+  # @param view [Gtk::TreeView]
+  # @param path [Gtk::TreePath]
+  # @param _column [Gtk::TreeViewColumn]
   def on_method_activated(view, path, _column)
     iter = view.model.get_iter(path)
     name = iter[0]
@@ -193,11 +200,15 @@ class DBusUI
     end
   end
 
+  # @param view [Gtk::TreeView]
+  # @param path [Gtk::TreePath]
+  # @param _column [Gtk::TreeViewColumn]
   def on_sessiontreeview_row_activated(view, path, _column)
     name = view.model.get_iter(path)[0]
     puts "Clicked on: #{name.inspect}"
   end
 
+  # @param treeview [Gtk::TreeView]
   def setup_methodview_renderer(treeview)
     renderer = Gtk::CellRendererText.new
     _col_offset = treeview.insert_column(-1, "T", renderer, "text" => 1)
@@ -206,6 +217,7 @@ class DBusUI
     column.clickable = true
   end
 
+  # @param treeview [Gtk::TreeView]
   def setup_treeview_renderer(treeview, str)
     renderer = Gtk::CellRendererText.new
     col_offset = treeview.insert_column(-1, str, renderer, "text" => 0)
