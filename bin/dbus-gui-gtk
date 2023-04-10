@@ -294,7 +294,7 @@ end
 class DBusUI
   def initialize
     @glade = Gtk::Builder.new
-    @glade << "gdbus.glade"
+    @glade.add_from_file(File.expand_path("dbus-gui-gtk.ui", __dir__))
 
     @interface_view = InterfaceView.new(@glade.get_object("methsigtreeview"))
 
