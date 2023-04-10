@@ -10,8 +10,6 @@
 require "dbus"
 require "gtk3"
 
-ENABLE_SYSTEM = true
-
 class MethodCallWindow
   # @param pwindow [Gtk::Window]
   # @param intf [DBus::ProxyObjectInterface]
@@ -27,6 +25,7 @@ class MethodCallWindow
         [Gtk::Stock::CANCEL, :cancel]
       ]
     )
+    @dialog.set_default_response(:ok)
 
     @meth.params.each do |param|
       shbox = Gtk::Box.new(:horizontal, 0)
@@ -91,34 +90,24 @@ class MethodCallWindow
   end
 end
 
-class DBusUI
-  def initialize
-    @glade = Gtk::Builder.new
-    @glade << "gdbus.glade"
+class InterfaceView
+  # @param tree_view [Gtk::TreeView]
+  def initialize(tree_view)
+    @tree_view = tree_view
 
-    @sessiontreeview = @glade.get_object("sessiontreeview")
-    setup_treeview_renderer(@sessiontreeview, "D-Bus Objects")
-    @sessiontreeview.selection.signal_connect("changed") do |selection|
-      on_treeview_selection_changed(selection)
-    end
-
-    @systemtreeview = @glade.get_object("systemtreeview")
-    setup_treeview_renderer(@systemtreeview, "D-Bus Objects")
-    @systemtreeview.selection.signal_connect("changed") do |selection|
-      on_treeview_selection_changed(selection)
-    end
-
-    @methsigtreeview = @glade.get_object("methsigtreeview")
-    # ierk
-    setup_methodview_renderer(@methsigtreeview)
-    @methsigtreeview.signal_connect("row-activated") do |view, path, column|
+    setup_methodview_renderer(@tree_view)
+    @tree_view.signal_connect("row-activated") do |view, path, column|
       on_method_activated(view, path, column)
     end
+  end
 
-    @window = @glade.get_object("window1")
-    @window.signal_connect("delete-event") { Gtk.main_quit }
-    @window.show_all
-    start_buses
+  # @param treeview [Gtk::TreeView]
+  def setup_methodview_renderer(treeview)
+    renderer = Gtk::CellRendererText.new
+    _col_offset = treeview.insert_column(-1, "T", renderer, "text" => 1)
+    col_offset = treeview.insert_column(-1, "Name", renderer, "text" => 0)
+    column = treeview.get_column(col_offset - 1)
+    column.clickable = true
   end
 
   def beautify_method(meth)
@@ -135,16 +124,11 @@ class DBusUI
     s
   end
 
-  # @param selection [Gtk::TreeSelection]
-  def on_treeview_selection_changed(selection)
-    selected = selection.selected
+  # @param intf [DBus::ProxyObjectInterface]
+  def fill(intf)
     model = Gtk::ListStore.new(String, String, DBus::Method,
                                DBus::ProxyObjectInterface)
-    @methsigtreeview.model = model
-    return unless selected
-
-    intf = selected[1]
-    return unless intf
+    @tree_view.model = model
 
     intf.methods.keys.sort.each do |mi|
       m = intf.methods[mi]
@@ -204,22 +188,30 @@ class DBusUI
       end
     end
   end
+end
 
-  # @param view [Gtk::TreeView]
-  # @param path [Gtk::TreePath]
-  # @param _column [Gtk::TreeViewColumn]
-  def on_sessiontreeview_row_activated(view, path, _column)
-    name = view.model.get_iter(path)[0]
-    puts "Clicked on: #{name.inspect}"
-  end
+class BusView
+  attr_reader :bus
 
-  # @param treeview [Gtk::TreeView]
-  def setup_methodview_renderer(treeview)
-    renderer = Gtk::CellRendererText.new
-    _col_offset = treeview.insert_column(-1, "T", renderer, "text" => 1)
-    col_offset = treeview.insert_column(-1, "Name", renderer, "text" => 0)
-    column = treeview.get_column(col_offset - 1)
-    column.clickable = true
+  # @param bus [DBus::BusConnection]
+  # @param tree_view [Gtk::TreeView]
+  # @param interface_view [InterfaceView]
+  def initialize(bus, tree_view, interface_view)
+    @bus = bus
+    # call glibize to get dbus messages from the glib mainloop
+    @bus.glibize
+
+    @tree_view = tree_view
+    @interface_view = interface_view
+
+    setup_treeview_renderer(@tree_view, "D-Bus Objects")
+    @tree_view.selection.signal_connect("changed") do |selection|
+      on_treeview_selection_changed(selection)
+    end
+
+    @bus.proxy.ListNames do |_msg, names|
+      fill_treeview(names)
+    end
   end
 
   # @param treeview [Gtk::TreeView]
@@ -230,22 +222,6 @@ class DBusUI
     column.clickable = true
   end
 
-  def start_buses
-    # call glibize to get dbus messages from the glib mainloop
-    DBus::SessionBus.instance.glibize
-    DBus::SystemBus.instance.glibize if ENABLE_SYSTEM
-
-    DBus::SessionBus.instance.proxy.ListNames do |_msg, names|
-      fill_treeview(DBus::SessionBus.instance, @sessiontreeview, names)
-    end
-
-    return unless ENABLE_SYSTEM
-
-    DBus::SystemBus.instance.proxy.ListNames do |_msg, names|
-      fill_treeview(DBus::SystemBus.instance, @systemtreeview, names)
-    end
-  end
-
   # @param model
   #   https://docs.gtk.org/gtk3/iface.TreeModel.html
   # @param iter [Gtk::TreeIter]
@@ -254,6 +230,7 @@ class DBusUI
     node.each_pair do |key, val|
       subiter = model.append(iter)
       subiter[0] = key
+      subiter[2] = "full"
       walk_node(model, subiter, val)
     end
 
@@ -263,40 +240,79 @@ class DBusUI
       subiter = model.append(iter)
       subiter[0] = ifname
       subiter[1] = node.object[ifname]
+      subiter[2] = "full"
     end
   end
 
-  # @param model
-  #   https://docs.gtk.org/gtk3/iface.TreeModel.html
-  #   https://developer-old.gnome.org/gtk2/stable/GtkTreeModel.html
-  # @param bus [DBus::Bus]
   # @param service_names_remaining [Array<String>]
-  def introspect_services(model, bus, service_names_remaining)
+  def introspect_services(service_names_remaining)
     sname = service_names_remaining.shift
     if sname !~ /^:/
+      model = @tree_view.model
       iter = model.append(nil)
       iter[0] = sname
-      puts "introspecting: #{bus.class} #{sname.inspect}"
-      begin
-        service = bus.service(sname).introspect
-        walk_node(model, iter, service.root)
-      rescue DBus::Error => e
-        puts "  #{e.dbus_message.error_name}: #{e.inspect}"
-      end
+      iter[2] = "empty"
     end
 
     # once we return false, Gtk Idle will stop calling us
     !service_names_remaining.empty?
   end
 
-  # @param bus [DBus::Bus]
-  # @param treeview [Gtk::TreeView]
   # @param service_names [Array<String>]
-  def fill_treeview(bus, treeview, service_names)
-    model = Gtk::TreeStore.new(String, DBus::ProxyObjectInterface)
-    treeview.model = model
+  def fill_treeview(service_names)
+    # the 3rd param should be Boolean. how?
+    model = Gtk::TreeStore.new(String, DBus::ProxyObjectInterface, String)
+    @tree_view.model = model
     service_names = service_names.sort
-    GLib::Idle.add { introspect_services(model, bus, service_names) }
+    GLib::Idle.add { introspect_services(service_names) }
+  end
+
+  # @param selection [Gtk::TreeSelection]
+  def on_treeview_selection_changed(selection)
+    iter = selection.selected
+    return unless iter
+
+    if iter[2] == "empty"
+      sname = iter[0]
+      begin
+        puts "introspecting: #{bus.class} #{sname}"
+        service = bus.service(sname).introspect
+        walk_node(@tree_view.model, iter, service.root)
+        iter[2] = "full"
+      rescue DBus::Error => e
+        puts "  #{e.dbus_message.error_name}: #{e.inspect}"
+      end
+    end
+
+    intf = iter[1]
+    return unless intf
+
+    @interface_view.fill(intf)
+  end
+end
+
+class DBusUI
+  def initialize
+    @glade = Gtk::Builder.new
+    @glade << "gdbus.glade"
+
+    @interface_view = InterfaceView.new(@glade.get_object("methsigtreeview"))
+
+    @session_view = BusView.new(
+      DBus::SessionBus.instance,
+      @glade.get_object("sessiontreeview"),
+      @interface_view
+    )
+
+    @system_view = BusView.new(
+      DBus::SystemBus.instance,
+      @glade.get_object("systemtreeview"),
+      @interface_view
+    )
+
+    @window = @glade.get_object("window1")
+    @window.signal_connect("delete-event") { Gtk.main_quit }
+    @window.show_all
   end
 
   def main
