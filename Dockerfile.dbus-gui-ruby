@@ -1,0 +1,17 @@
+# podman build -t dbus-gui-ruby:1 -f Dockerfile.dbus-gui-ruby .
+# https://github.com/tcnksm/dockerfile-rbenv/blob/master/Dockerfile
+
+FROM localhost/dbus-gui-rpms:1
+
+RUN git clone https://github.com/rbenv/rbenv.git /root/.rbenv
+RUN git clone https://github.com/rbenv/ruby-build.git /root/.rbenv/plugins/ruby-build
+RUN /root/.rbenv/plugins/ruby-build/install.sh
+ENV PATH /root/.rbenv/bin:$PATH
+#RUN echo 'eval "$(rbenv init -)"' >> /etc/profile.d/rbenv.sh
+RUN echo 'eval "$(rbenv init -)"' >> .bashrc
+
+# Install multiple versions of ruby
+ENV CONFIGURE_OPTS --disable-install-doc
+#ADD ./versions.txt 
+RUN sh -c 'echo 3.1.4 > /root/versions.txt'
+RUN xargs -L 1 rbenv install < /root/versions.txt

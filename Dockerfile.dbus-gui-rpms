@@ -1,0 +1,11 @@
+FROM registry.opensuse.org/opensuse/leap:15.4
+
+RUN zypper --non-interactive install --no-recommends \
+  xev xauth \
+  git-core \
+  tar gzip \
+  gcc make patch automake bzip2 \
+  libopenssl-devel libyaml-devel libffi-devel readline-devel zlib-devel gdbm-devel ncurses-devel \
+  xorg-x11-fonts
+
+RUN zypper clean --all
