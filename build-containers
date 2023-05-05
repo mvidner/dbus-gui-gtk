@@ -1,0 +1,5 @@
+#!/bin/sh
+podman build -t dbus-gui-rpms -f Dockerfile.dbus-gui-rpms .
+podman build -t dbus-gui-ruby -f Dockerfile.dbus-gui-ruby .
+podman build -t dbus-gui-gems -f Dockerfile.dbus-gui-gems .
+podman build -t dbus-gui-app  -f Dockerfile .

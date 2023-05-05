@@ -1,7 +1,7 @@
 # podman build -t dbus-gui-ruby:1 -f Dockerfile.dbus-gui-ruby .
 # https://github.com/tcnksm/dockerfile-rbenv/blob/master/Dockerfile
 
-FROM localhost/dbus-gui-rpms:1
+FROM localhost/dbus-gui-rpms
 
 RUN git clone https://github.com/rbenv/rbenv.git /root/.rbenv
 RUN git clone https://github.com/rbenv/ruby-build.git /root/.rbenv/plugins/ruby-build

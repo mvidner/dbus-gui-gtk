@@ -1,0 +1,10 @@
+#!/bin/sh
+podman run \
+      -v .:/checkout \
+      -v /var/run/dbus:/var/run/dbus:ro \
+      -v /tmp/.X11-unix:/tmp/.X11-unix:ro \
+      -v $XAUTHORITY:/root/.Xauthority \
+      -e DISPLAY -e XAUTHLOCALHOSTNAME \
+      --rm \
+      -it localhost/dbus-gui-gems \
+      bash -c 'dbus-uuidgen --ensure; for D in /checkout /dbus-gui-gtk; do pushd $D; rbenv exec bundle exec bin/dbus-gui-gtk; test -f Gemfile && break; popd; done'
