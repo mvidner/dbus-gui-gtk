@@ -302,7 +302,7 @@ class DBusUI
       DBus::SessionBus.instance,
       @glade.get_object("sessiontreeview"),
       @interface_view
-    )
+    ) if false
 
     @system_view = BusView.new(
       DBus::SystemBus.instance,
