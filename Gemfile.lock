@@ -58,7 +58,7 @@ GEM
       unicode-display_width (>= 1.4.0, < 3.0)
     rubocop-ast (1.28.0)
       parser (>= 3.2.1.0)
-    ruby-dbus (0.21.0)
+    ruby-dbus (0.22.0)
       rexml
     ruby-progressbar (1.13.0)
     unicode-display_width (2.4.2)
@@ -74,7 +74,7 @@ DEPENDENCIES
   nokogiri (~> 1.14)
   rake (>= 13, < 999)
   rubocop (= 1.14.0)
-  ruby-dbus (~> 0.21.0)
+  ruby-dbus (~> 0.22.0)
   yard (>= 0.9, < 999)
 
 BUNDLED WITH
