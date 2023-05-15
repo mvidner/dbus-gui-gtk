@@ -1,9 +1,14 @@
-FROM localhost/dbus-gui-ruby
+FROM mvidner/dbus-gui-ruby
 
 RUN echo 'gem: --no-rdoc --no-ri' >> /.gemrc
 RUN rbenv global 3.1.4
 RUN git clone https://github.com/mvidner/dbus-gui-gtk.git
-# don't collide on zypp locks
+# -j1: one concurrent job, don't collide on zypp locks
+# bundle install twice, first without the fast_changing group, for better build caching
+RUN cd dbus-gui-gtk; \
+  rbenv exec bundle config set   --local without fast_changing; \
+  rbenv exec bundle install -j1; \
+  rbenv exec bundle config unset --local without
 RUN cd dbus-gui-gtk; rbenv exec bundle install -j1
 # ruby-gnome2.gem uses zypper to install dependencies. 200M of cache.
 RUN zypper clean --all

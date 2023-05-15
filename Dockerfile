@@ -1,4 +1,4 @@
-FROM localhost/dbus-gui-gems
+FROM mvidner/dbus-gui-gems
 
 COPY entrypoint.sh /entrypoint.sh
 # ENTRYPOINT /entrypoint.sh
