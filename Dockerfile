@@ -10,6 +10,7 @@ LABEL run podman run \
       -v /tmp/.X11-unix:/tmp/.X11-unix:ro \
       -e XAUTHORITY \
       -e DISPLAY -e XAUTHLOCALHOSTNAME \
+      -e DBUS_SESSION_BUS_ADDRESS \
       --rm \
       -it IMAGE \
       sh /entrypoint.sh

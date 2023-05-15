@@ -1,5 +1,9 @@
 #!/bin/sh
 export XAUTHORITY="/host/${XAUTHORITY:-$HOME/.Xauthority}"
+if [ -n "${DBUS_SESSION_BUS_ADDRESS}" ]; then
+    export DBUS_SESSION_BUS_ADDRESS="unix:path=/host${DBUS_SESSION_BUS_ADDRESS#unix:path=}"
+fi
+
 dbus-uuidgen --ensure
 for D in /checkout /dbus-gui-gtk; do
     pushd $D
